@@ -1,0 +1,176 @@
+! ============================================================
+! simple_beam.inp — 简支梁模型 ANSYS APDL（含导出）
+! ============================================================
+! 用途：   EBE-PCG 验证基准模型
+! 单元：   BEAM3（2D弹性梁，2节点，每节点3DOF：UX,UY,ROTZ）
+! 模型：   跨度10m，10单元均分，矩形截面 0.2m×0.3m
+! 荷载：   跨中集中力 -10kN（竖直向下）
+! 支座：   左端 UX+UY，右端 UY（简支，右端可滑动）
+! 理论解： 跨中挠度 δ_max = PL³/(48EI) ≈ 2.204 mm
+! ============================================================
+! 运行方式：
+!   ANSYS Mechanical APDL → File → Read Input from → 选此文件
+!   导出文件生成在 ANSYS 工作目录下（共 6 个 .txt 文件）
+! ============================================================
+
+FINISH
+/CLEAR,START
+/FILNAME,simple_beam,1
+/TITLE,Simply Supported Beam for EBE-PCG Verification
+/COM,============================================================
+/COM, 简支梁模型 — EBE-PCG 验证
+/COM, 跨中集中力 P = -10kN, 理论挠度 ≈ 2.204 mm
+/COM,============================================================
+
+! =================== 参数定义 ===================
+*SET,BEAM_L,   10.0        ! 梁全长 (m)
+*SET,N_ELEM,   10          ! 单元数
+*SET,B_W,      0.2         ! 截面宽 (m)
+*SET,B_H,      0.3         ! 截面高 (m)
+*SET,E_MOD,    210.0e9     ! 弹性模量 (Pa)
+*SET,NU_P,     0.3         ! 泊松比
+*SET,RHO_M,    7850.0      ! 密度 (kg/m^3)
+*SET,P_FORCE,  -10000.0    ! 跨中集中力 (N)
+
+! =================== 截面属性 ===================
+*SET,AREA,   B_W * B_H                ! 面积
+*SET,IZZ,    B_W * B_H**3 / 12.0      ! 惯性矩
+
+! =================== 前处理 ===================
+/PREP7
+
+! 单元类型 1: BEAM3（2D 弹性梁）
+!   BEAM3 自由度: UX, UY, ROTZ（每节点 3DOF，每单元 6DOF）
+ET,1,BEAM3
+
+! 实常数（截面属性）: AREA, IZZ, HEIGHT
+R,1,AREA,IZZ,B_H
+
+! 材料属性
+MP,EX,   1,E_MOD
+MP,NUXY, 1,NU_P
+MP,DENS, 1,RHO_M
+
+! =================== 节点建模 ===================
+*SET,DX, BEAM_L / N_ELEM    ! 每单元长度
+*DO,I,1,N_ELEM+1
+    N,I, (I-1)*DX, 0.0, 0.0
+*ENDDO
+
+! =================== 单元建模 ===================
+TYPE,1
+REAL,1
+MAT,1
+*DO,I,1,N_ELEM
+    E,I,I+1
+*ENDDO
+
+! =================== 边界条件 ===================
+! 简支：左端 UX+UY，右端 UY
+D,1,UX,0
+D,1,UY,0
+D,N_ELEM+1,UY,0
+
+! =================== 荷载 ===================
+*SET,MID_NODE, N_ELEM/2 + 1
+F,MID_NODE,FY,P_FORCE
+
+! =================== 求解 ===================
+/SOLU
+ANTYPE,STATIC
+SOLVE
+FINISH
+
+! =================== 后处理：打印跨中挠度 ===================
+/POST1
+SET,LAST
+*GET,UY_MID,NODE,MID_NODE,U,Y
+*MSG,UI,MID_NODE,UY_MID
+%/ 跨中节点 %I 的竖向位移 UY = %14.6E m (%10.4f mm)
+
+! ============================================================
+! 导出模型信息到文本文件（供 Python 读取）
+! 所有文件 → ANSYS 工作目录
+! ============================================================
+
+! -------- (1) nodes.txt: 节点坐标 --------
+! 格式: node_id x y z
+*CFOPEN,nodes,txt
+*VWRITE,'NNODES=',N_ELEM+1
+(A7,F6.0)
+*DO,I,1,N_ELEM+1
+    *VWRITE,I,NX(I),NY(I),NZ(I)
+    (F6.0,3F14.6)
+*ENDDO
+*CFCLOSE
+
+! -------- (2) elements.txt: 单元连接 --------
+! 格式: elem_id node_i node_j elem_type real_const material
+*CFOPEN,elements,txt
+*VWRITE,'NELEMS=',N_ELEM
+(A7,F6.0)
+*DO,I,1,N_ELEM
+    *VWRITE,I,NELEM(I,1),NELEM(I,2),1,1,1
+    (F6.0,5F6.0)
+*ENDDO
+*CFCLOSE
+
+! -------- (3) materials.txt: 材料参数 --------
+! 格式: mat_id E nu rho
+*CFOPEN,materials,txt
+*VWRITE,'1_mat E=',E_MOD,' nu=',NU_P,' rho=',RHO_M
+(A8,E14.6,A5,F8.4,A6,F8.2)
+*CFCLOSE
+
+! -------- (4) sections.txt: 截面参数 --------
+! 格式: real_id area Izz height
+*CFOPEN,sections,txt
+*VWRITE,'1_sec AREA=',AREA,' IZ=',IZZ,' H=',B_H
+(A11,E14.6,A8,E14.6,A4,F8.3)
+*CFCLOSE
+
+! -------- (5) boundary.txt: 边界条件 --------
+! 格式: node_id dof_label(UX/UY/ROTZ)
+*CFOPEN,boundary,txt
+*VWRITE,'NBC=',3
+(A5,F4.0)
+*VWRITE,1.0,1.0
+('NODE',F8.0,' DOF=UX')
+*VWRITE,1.0,2.0
+('NODE',F8.0,' DOF=UY')
+*VWRITE,N_ELEM+1.0,2.0
+('NODE',F8.0,' DOF=UY')
+*CFCLOSE
+
+! -------- (6) loads.txt: 集中荷载 --------
+! 格式: node_id dof_label force_value
+*CFOPEN,loads,txt
+*VWRITE,'NLOAD=',1
+(A6,F4.0)
+*VWRITE,MID_NODE,P_FORCE
+('NODE',F8.0,' DOF=FY VALUE=',E14.6)
+*CFCLOSE
+
+! -------- (7) displacements.txt: ANSYS 求解结果（用于验证） --------
+! 格式: node_id UX UY ROTZ
+*CFOPEN,displacements,txt
+*VWRITE,N_ELEM+1
+('NDISP=',F6.0)
+*DO,I,1,N_ELEM+1
+    *VWRITE,I,UX(I),UY(I),ROTZ(I)
+    (F6.0,3E16.6)
+*ENDDO
+*CFCLOSE
+
+/COM,============================================================
+/COM,  导出完成。生成了以下文件（在工作目录下）：
+/COM,    nodes.txt         — 节点坐标
+/COM,    elements.txt      — 单元连接表
+/COM,    materials.txt     — 材料属性
+/COM,    sections.txt      — 截面参数
+/COM,    boundary.txt      — 边界条件
+/COM,    loads.txt         — 荷载
+/COM,    displacements.txt — ANSYS 求解位移（验证用）
+/COM,============================================================
+
+FINISH
