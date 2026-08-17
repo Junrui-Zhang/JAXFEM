@@ -1,10 +1,22 @@
 # 简支梁 EBE-PCG 可行性验证 Demo
 
+[![GitHub](https://img.shields.io/badge/GitHub-JAXFEM-blue?logo=github)](https://github.com/Junrui-Zhang/JAXFEM)
+
+> 🚀 **产品链接**：[JAXFEM Web 演示平台 →](product/README.md)
+> 浏览器交互式参数调节、实时求解、3D 变形云图与 GPU 耗时对比。
+>
+> GitHub 仓库：<https://github.com/Junrui-Zhang/JAXFEM>
+
 ## 概述
 
 本 demo 是硕士论文《大跨度桥梁抖振时域分析的GPU加速并行有限元算法》步骤 1.4 的可行性预验证。
 
 验证目标：对一简支梁模型，分别用 NumPy 串行和 JAX GPU 并行两种方式实现 EBE-PCG 求解器，对比结果精度和计算速度。
+
+<p align="center">
+  <img src="figures/beam4_element.png" width="640" alt="简支梁 BEAM4 3D 模型">
+</p>
+<p align="center"><em>beam4单元 12自由度</em></p>
 
 ## 模型参数
 
@@ -20,6 +32,12 @@
 | 单元类型 | 2D Euler-Bernoulli 梁 | 每节点 3DOF (UX, UY, ROTZ) |
 
 **理论跨中挠度**：δ = PL³/(48EI) = **2.204 mm**（向下）
+
+## 项目架构
+
+
+
+数据流：ANSYS 模型（`simple_beam.inp`）→ `ansys_parser.py` 解析 → `beam_element.py` 生成单元刚度矩阵 → `post.py` 统一求解入口；求解器分 `numpy_ebe/`（串行，用于验证）与 `jax_ebe/`（vmap GPU 并行）两条路径，最终对比精度与耗时。
 
 ## 目录结构
 
@@ -51,6 +69,8 @@ JAXFEM/
 # 浏览器打开 http://127.0.0.1:8050
 ```
 
+> 产品详情、功能清单与演示脚本见 [product/README.md](product/README.md)。
+
 ### 3. 基准测试与绘图
 ```bash
 /home/zjr/anaconda3/envs/jaxfem/bin/python3 scripts/benchmark.py      # 跑 benchmark（耗时较长）
@@ -70,6 +90,25 @@ JAXFEM/
 | 跨中挠度 | ≈2.204 mm | ≈2.204 mm | ≈2.204 mm | 2.204 mm |
 | 求解迭代次数 | - | - | - | - |
 
+求解后的变形云图（3D 实体梁，截面扫掠渲染）：
+
+| UY 挠度云图 | von Mises 应力云图 |
+|---|---|
+| <img src="figures/uy.png" width="400" alt="UY 挠度云图"> | <img src="figures/mises.png" width="400" alt="von Mises 应力云图"> |
+
+## 性能对比（GPU 加速）
+
+三种求解方式（NumPy 直接解 / NumPy EBE-PCG / JAX EBE-PCG）的耗时对比，以及随模型规模的扩展趋势：
+
+<p align="center">
+  <img src="figures/benchmark_time_cost.png" width="640" alt="三种求解方式耗时对比">
+</p>
+<p align="center"><em>总耗时对比：模型规模增大时，JAX GPU 并行优势显著</em></p>
+
+| 单次迭代耗时 | 迭代次数随规模变化 |
+|---|---|
+| <img src="figures/benchmark_per_iter.png" width="360" alt="单次迭代耗时"> | <img src="figures/benchmark_iterations.png" width="360" alt="迭代次数随规模变化"> |
+
 ## 关键概念
 
 ### EBE (Element-by-Element) 核心运算
@@ -78,6 +117,8 @@ JAXFEM/
 - **伪向量** $x^{(e)}$：包含单元自身 + 相邻单元共享节点的值
 - **内积分解**：$(r,r) = \sum_{e=1}^E (r^e)^T r^{(e)}$
 - **$p^TAp$ 分解**：$(p,Ap) = \sum_{e=1}^E (p^{(e)})^T A^e p^{(e)}$
+
+
 
 ### 邻接关系
 
