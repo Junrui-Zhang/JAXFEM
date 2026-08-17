@@ -24,38 +24,42 @@
 ## 目录结构
 
 ```
-demo/
-├── README.md                    # 本文件
-├── ansys/
-│   └── simple_beam.inp          # ANSYS APDL 建模脚本（含导出）
-├── numpy_ebe/
-│   ├── beam_model.py            # 梁模型定义 + 全局矩阵组装
-│   ├── ebe_pcg.py               # NumPy EBE-PCG 求解器（串行循环）
-│   └── main.py                  # 运行入口，输出结果对比
-└── jax_ebe/
-    ├── beam_model.py            # 梁模型定义（JAX 版本）
-    ├── ebe_pcg.py               # JAX EBE-PCG 求解器（vmap 并行）
-    └── main.py                  # 运行入口，输出结果和加速比
+JAXFEM/
+├── README.md                    # 本文件（项目说明）
+├── beam_element.py              # BEAM4 单元刚度矩阵（核心）
+├── post.py                      # 统一求解入口 + 可视化类（核心）
+├── ansys/                       # 模型生成 + ANSYS 导出解析（核心）
+├── jax_ebe/                     # JAX EBE-PCG 求解器（vmap 并行）
+├── numpy_ebe/                   # NumPy EBE-PCG 求解器（串行）
+├── benchmark_data/              # 基准测试数据（.npy）
+├── product/                     # ★ Web 产品（Dash 应用，见 product/README.md）
+├── scripts/                     # 科研脚本：benchmark / 绘图 / 报告插图生成
+├── docs/                        # 文档：使用手册 / 技术报告 / PPT 指南
+└── figures/                     # 全部图件（论文插图 + 基准曲线 + 云图截图）
 ```
 
 ## 运行方式
 
-### 1. NumPy 串行版本
+### 1. 命令行求解（推荐）
 ```bash
-cd numpy_ebe
-python3 main.py
+/home/zjr/anaconda3/envs/jaxfem/bin/python3 post.py --n-elem 200 --solver jax
 ```
 
-### 2. JAX 并行版本
+### 2. Web 产品（参数调节 + 3D 云图 + 耗时对比）
 ```bash
-cd jax_ebe
-python3 main.py
+/home/zjr/anaconda3/envs/jaxfem/bin/python3 product/app.py
+# 浏览器打开 http://127.0.0.1:8050
 ```
 
-### 3. ANSYS 验证（需要安装 ANSYS）
+### 3. 基准测试与绘图
 ```bash
-cd ansys
-# 启动 ANSYS APDL，读取 simple_beam.inp
+/home/zjr/anaconda3/envs/jaxfem/bin/python3 scripts/benchmark.py      # 跑 benchmark（耗时较长）
+/home/zjr/anaconda3/envs/jaxfem/bin/python3 scripts/plot_benchmark.py # 生成耗时对比图 → figures/
+```
+
+### 4. ANSYS 验证（需要安装 ANSYS）
+```bash
+# 启动 ANSYS APDL，读取 ansys/simple_beam.inp
 # File → Read Input from... → simple_beam.inp
 ```
 

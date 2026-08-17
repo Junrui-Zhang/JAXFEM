@@ -7,7 +7,7 @@ plot_benchmark.py — 读取 benchmark_data/ 生成耗时对比图
   - benchmark_iterations.pdf   迭代次数
 
 用法:
-    /home/zjr/anaconda3/envs/jaxfem/bin/python3 plot_benchmark.py
+    /home/zjr/anaconda3/envs/jaxfem/bin/python3 scripts/plot_benchmark.py
 """
 
 import os
@@ -47,8 +47,9 @@ plt.rcParams.update({
 # ============================================================
 
 def load_data(data_dir="benchmark_data"):
-    """从 benchmark_data/ 加载基准测试结果。"""
-    base = os.path.join(os.path.dirname(__file__), data_dir)
+    """从 benchmark_data/ 加载基准测试结果(脚本位于 scripts/)。"""
+    base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        data_dir)
     return {
         "n_elem_list": np.load(os.path.join(base, "n_elem_list.npy")),
         "times": {
@@ -184,7 +185,8 @@ if __name__ == "__main__":
     times = data["times"]
     n_iters = data["n_iters"]
 
-    save_dir = os.path.dirname(os.path.abspath(__file__))
+    save_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "figures")
 
     plot_time_cost(n_elem_list, times, save_dir)
     plot_per_iter(n_elem_list, times, n_iters, save_dir)

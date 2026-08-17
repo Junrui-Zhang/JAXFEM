@@ -10,9 +10,12 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-sys.path.insert(0, os.path.dirname(__file__))
+# 脚本位于 scripts/:核心模块在项目根,plot_benchmark 在同目录
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-SAVE = os.path.join(os.path.dirname(__file__), "figures")
+SAVE = os.path.join(_ROOT, "figures")
 os.makedirs(SAVE, exist_ok=True)
 
 npg = ["#E64B35", "#4DBBD5", "#00A087", "#3C5488", "#F39B7F"]

@@ -9,13 +9,15 @@ benchmark.py — 三种求解器耗时基准测试
 结果保存至 benchmark_data/，供 plot_benchmark.py 读取绘图。
 
 用法:
-    /home/zjr/anaconda3/envs/jaxfem/bin/python3 benchmark.py
+    /home/zjr/anaconda3/envs/jaxfem/bin/python3 scripts/benchmark.py
 """
 
 import sys, os, time
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# 脚本位于 scripts/,核心模块在项目根
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)
 
 from ansys.ansys_parser import build_native_model
 from post import direct_solve, solve
@@ -108,7 +110,7 @@ if __name__ == "__main__":
               f"{n_iters['numpy_ebe'][i]:>8} {n_iters['jax_ebe'][i]:>9}")
 
     # ---- 保存数据 ----
-    data_dir = os.path.join(os.path.dirname(__file__), "benchmark_data")
+    data_dir = os.path.join(_ROOT, "benchmark_data")
     os.makedirs(data_dir, exist_ok=True)
     np.save(os.path.join(data_dir, "n_elem_list.npy"), n_elem_list)
     np.save(os.path.join(data_dir, "times_direct.npy"), times["direct"])
